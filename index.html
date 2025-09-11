@@ -1,0 +1,2225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zaico Chatbot Demo - AI Assistant</title>
+    
+    <!-- React and ReactDOM from CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- DaisyUI CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    
+    <style>
+        :root {
+            --primary-bg: #362F4B;
+            --secondary-bg: #4A3F5F;
+            --accent-color: #C5B4E3;
+            --text-light: #E8E0F0;
+            --text-muted: #B8A8C8;
+            --card-bg: #2A2338;
+            --border-color: #5A4F6F;
+        }
+        
+        body {
+            background-color: var(--primary-bg) !important;
+        }
+        
+        .typing-animation {
+            animation: typing 1.5s infinite;
+        }
+        
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-in-left {
+            animation: slideInLeft 0.6s ease-out;
+        }
+        
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .slide-in-right {
+            animation: slideInRight 0.6s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .scale-in {
+            animation: scaleIn 0.4s ease-out;
+        }
+        
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 2s infinite;
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(197, 180, 227, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(197, 180, 227, 0.6); }
+        }
+        
+        /* Custom dark purple theme */
+        .custom-bg {
+            background-color: var(--primary-bg);
+        }
+        
+        .custom-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
+        
+        .custom-text {
+            color: var(--text-light);
+        }
+        
+        .custom-text-muted {
+            color: var(--text-muted);
+        }
+        
+        .custom-accent {
+            color: var(--accent-color);
+        }
+        
+        .custom-btn {
+            background-color: var(--secondary-bg);
+            border-color: var(--border-color);
+            color: var(--text-light);
+        }
+        
+        .custom-btn:hover {
+            background-color: var(--accent-color);
+            color: var(--primary-bg);
+        }
+        
+        .custom-input {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-light);
+        }
+        
+        .custom-input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .custom-chat-bubble {
+            background-color: var(--secondary-bg);
+            color: var(--text-light);
+        }
+        
+        .custom-user-bubble {
+            background-color: var(--accent-color);
+            color: var(--primary-bg);
+        }
+    </style>
+</head>
+<body class="bg-base-200 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Main App Component
+        function ZaicoChatbot() {
+            const [messages, setMessages] = useState([]);
+            const [isTyping, setIsTyping] = useState(false);
+            const [currentStep, setCurrentStep] = useState('landing');
+            const [userData, setUserData] = useState({});
+            const [customMessage, setCustomMessage] = useState('');
+            const [remainingMinutes, setRemainingMinutes] = useState(10);
+            const [currentNumber, setCurrentNumber] = useState('+1 (555) 123-4567');
+            const [showTranscription, setShowTranscription] = useState(false);
+            const [transcriptionData, setTranscriptionData] = useState(null);
+            const [showUpgrade, setShowUpgrade] = useState(false);
+            const [isProcessing, setIsProcessing] = useState(false);
+            const [processingStep, setProcessingStep] = useState('');
+            const [processingProgress, setProcessingProgress] = useState(0);
+            const [currentSlide, setCurrentSlide] = useState(0);
+            const messagesEndRef = useRef(null);
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            };
+
+            // Slide navigation functions
+            const nextSlide = () => {
+                setCurrentSlide(prev => Math.min(prev + 1, 11)); // 12 slides total (0-11)
+            };
+
+            const prevSlide = () => {
+                setCurrentSlide(prev => Math.max(prev - 1, 0));
+            };
+
+            const goToSlide = (slideIndex) => {
+                setCurrentSlide(slideIndex);
+            };
+
+            // Start demo function
+            const startDemo = () => {
+                setCurrentStep('intro');
+                setTimeout(() => {
+                    addMessage("I understand that it's hard for you to call places and arrange things. Phone anxiety is real, and you're not alone.");
+                }, 500);
+                setTimeout(() => {
+                    addMessageWithTyping("I'm your AI concierge, designed to eliminate phone calls from your life forever. I'll handle all the calling, booking, and arranging for you.");
+                }, 2000);
+                setTimeout(() => {
+                    const initialButtons = (
+                        <div className="space-y-3 mt-3">
+                            <button 
+                                className="custom-btn btn w-full"
+                                onClick={() => handleScenarioSelect("booking")}
+                            >
+                                Book a service
+                            </button>
+                            <button 
+                                className="custom-btn btn w-full"
+                                onClick={() => handleScenarioSelect("calling")}
+                            >
+                                Call someone
+                            </button>
+                        </div>
+                    );
+                    addMessage("What would you like me to help you with today?", 'system', null, initialButtons);
+                }, 4000);
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages]);
+
+            // Simple message adding function
+            const addMessage = (text, type = 'system', content = null, buttons = null) => {
+                setMessages(prev => [...prev, {
+                    id: Date.now(),
+                    type: type,
+                    text: text,
+                    content: content, // For cards, forms, etc.
+                    buttons: buttons, // For action buttons
+                    timestamp: new Date()
+                }]);
+            };
+
+            // Simulate typing animation
+            const addMessageWithTyping = (text, delay = 1500) => {
+                setIsTyping(true);
+                setTimeout(() => {
+                    setIsTyping(false);
+                    addMessage(text, 'system');
+                }, delay);
+            };
+
+            // Initialize chat
+
+            // Handle scenario selection
+            const handleScenarioSelect = (scenario) => {
+                addMessage(scenario, 'user');
+                
+                if (scenario === "booking") {
+                    setTimeout(() => {
+                        const serviceButtons = (
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleServiceTypeSelect("Doctor Appointment")}
+                                >
+                                    Doctor
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleServiceTypeSelect("Cleaning Service")}
+                                >
+                                    Cleaning
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleServiceTypeSelect("Restaurant Reservation")}
+                                >
+                                    Restaurant
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleServiceTypeSelect("Beauty Salon")}
+                                >
+                                    Beauty Salon
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleServiceTypeSelect("Taxi/Ride")}
+                                >
+                                    Taxi/Ride
+                                </button>
+                            </div>
+                        );
+                        addMessage("I'll help you book a service. What type of service do you need?", 'system', null, serviceButtons);
+                        setCurrentStep('service-selection');
+                    }, 1000);
+                } else if (scenario === "calling") {
+                    setTimeout(() => {
+                        const callButtons = (
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleServiceTypeSelect("Customer Support")}
+                                >
+                                    Customer Support
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleServiceTypeSelect("Personal Call")}
+                                >
+                                    Personal Call
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleServiceTypeSelect("Business Call")}
+                                >
+                                    Business Call
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleServiceTypeSelect("Invite girlfriend to movies")}
+                                >
+                                    Invite girlfriend to movies
+                                </button>
+                            </div>
+                        );
+                        addMessage("I'll help you make a call. What type of call do you need to make?", 'system', null, callButtons);
+                        setCurrentStep('call-selection');
+                    }, 1000);
+                } else {
+                    setTimeout(() => {
+                        addMessageWithTyping("I'll help you with that. Let me get some details first.");
+                    }, 1000);
+                }
+            };
+
+            // Handle specific service selection
+            const handleServiceTypeSelect = (serviceType) => {
+                addMessage(serviceType, 'user');
+                
+                // If it's a doctor appointment, show doctor type selection first
+                if (serviceType === "Doctor Appointment") {
+                    setTimeout(() => {
+                        const doctorTypeButtons = (
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleDoctorTypeSelect("General Practitioner")}
+                                >
+                                    General Practitioner
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleDoctorTypeSelect("Dentist")}
+                                >
+                                    Dentist
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleDoctorTypeSelect("Dermatologist")}
+                                >
+                                    Dermatologist
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleDoctorTypeSelect("Cardiologist")}
+                                >
+                                    Cardiologist
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleDoctorTypeSelect("Psychiatrist")}
+                                >
+                                    Psychiatrist
+                                </button>
+                                <button 
+                                    className="custom-btn btn btn-sm"
+                                    onClick={() => handleDoctorTypeSelect("Other Specialist")}
+                                >
+                                    Other Specialist
+                                </button>
+                            </div>
+                        );
+                        addMessage("What type of doctor do you need to see?", 'system', null, doctorTypeButtons);
+                    }, 1000);
+                } else {
+                    setCurrentStep('contact-form');
+                    showContactForm(serviceType);
+                }
+            };
+
+            // Handle doctor type selection
+            const handleDoctorTypeSelect = (doctorType) => {
+                addMessage(doctorType, 'user');
+                setCurrentStep('contact-form');
+                showContactForm("Doctor Appointment", doctorType);
+            };
+
+            // Show contact form
+            const showContactForm = (serviceType, doctorType = null) => {
+                setTimeout(() => {
+                    const contactForm = (
+                        <div className="custom-card p-4 mt-2">
+                            <h3 className="font-bold custom-accent mb-3">Contact Information</h3>
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                const formData = {
+                                    name: e.target.name.value,
+                                    email: e.target.email.value,
+                                    phone: e.target.phone.value,
+                                    location: e.target.location.value,
+                                    serviceType: serviceType,
+                                    doctorType: doctorType
+                                };
+                                handleFormSubmit(formData);
+                            }}>
+                                <div className="space-y-3">
+                                    <input 
+                                        type="text" 
+                                        name="name"
+                                        placeholder="Full Name" 
+                                        className="input input-bordered w-full custom-input" 
+                                        defaultValue="John Smith"
+                                        required 
+                                    />
+                                    <input 
+                                        type="email" 
+                                        name="email"
+                                        placeholder="Email" 
+                                        className="input input-bordered w-full custom-input" 
+                                        defaultValue="john.smith@email.com"
+                                        required 
+                                    />
+                                    <input 
+                                        type="tel" 
+                                        name="phone"
+                                        placeholder="Phone Number" 
+                                        className="input input-bordered w-full custom-input" 
+                                        defaultValue="+1 (555) 123-4567"
+                                        required 
+                                    />
+                                    <input 
+                                        type="text" 
+                                        name="location"
+                                        placeholder="Location (City, State)" 
+                                        className="input input-bordered w-full custom-input" 
+                                        defaultValue="New York, NY"
+                                        required 
+                                    />
+                                    <button type="submit" className="custom-btn btn btn-sm w-full">
+                                        Continue
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    );
+                    addMessage(`I'll help you with ${serviceType.toLowerCase()}. Let me get your contact information first.`, 'system', contactForm);
+                }, 1000);
+            };
+
+            // Handle contact form submission
+            const handleFormSubmit = (formData) => {
+                setUserData(formData);
+                addMessage(`Contact info: ${formData.name}, ${formData.email}, ${formData.phone}`, 'user');
+                
+                // If it's a doctor appointment, show medical form first
+                if (formData.serviceType === "Doctor Appointment") {
+                    setCurrentStep('medical-form');
+                    setTimeout(() => {
+                        const medicalForm = (
+                            <div className="custom-card p-4 mt-2">
+                                <h3 className="font-bold custom-accent mb-3">Medical Information</h3>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const medicalData = {
+                                        medicalHistory: e.target.medicalHistory.value,
+                                        budget: e.target.budget.value,
+                                        insurance: e.target.insurance.value,
+                                        symptoms: e.target.symptoms.value
+                                    };
+                                    handleMedicalSubmit(medicalData);
+                                }}>
+                                    <div className="space-y-3">
+                                        <textarea 
+                                            name="medicalHistory"
+                                            placeholder="Brief medical history (optional)" 
+                                            className="textarea textarea-bordered w-full custom-input" 
+                                            rows="3"
+                                            defaultValue="No significant medical history"
+                                        />
+                                        <select 
+                                            name="budget"
+                                            className="select select-bordered w-full custom-input" 
+                                            defaultValue="$100-200"
+                                            required
+                                        >
+                                            <option value="">Select your budget range</option>
+                                            <option value="$50-100">$50-100</option>
+                                            <option value="$100-200">$100-200</option>
+                                            <option value="$200-300">$200-300</option>
+                                            <option value="$300-500">$300-500</option>
+                                            <option value="$500+">$500+</option>
+                                        </select>
+                                        <select 
+                                            name="insurance"
+                                            className="select select-bordered w-full custom-input" 
+                                            defaultValue="Blue Cross Blue Shield"
+                                            required
+                                        >
+                                            <option value="">Select your insurance</option>
+                                            <option value="Blue Cross Blue Shield">Blue Cross Blue Shield</option>
+                                            <option value="Aetna">Aetna</option>
+                                            <option value="Cigna">Cigna</option>
+                                            <option value="UnitedHealth">UnitedHealth</option>
+                                            <option value="Kaiser Permanente">Kaiser Permanente</option>
+                                            <option value="Medicaid">Medicaid</option>
+                                            <option value="Medicare">Medicare</option>
+                                            <option value="No Insurance">No Insurance</option>
+                                        </select>
+                                        <input 
+                                            type="text" 
+                                            name="symptoms"
+                                            placeholder="Current symptoms or reason for visit" 
+                                            className="input input-bordered w-full custom-input" 
+                                            defaultValue="Annual checkup"
+                                            required 
+                                        />
+                                        <button type="submit" className="custom-btn btn btn-sm w-full">
+                                            Continue to Payment
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        );
+                        addMessage("Now I need some medical information to find the best options within your budget and insurance coverage.", 'system', medicalForm);
+                    }, 1000);
+                } else {
+                    setCurrentStep('payment-form');
+                    showPaymentForm();
+                }
+            };
+
+            // Handle medical form submission
+            const handleMedicalSubmit = (medicalData) => {
+                const fullData = { ...userData, ...medicalData };
+                setUserData(fullData);
+                addMessage(`Medical info: ${medicalData.budget} budget, ${medicalData.insurance} insurance`, 'user');
+                setCurrentStep('payment-form');
+                showPaymentForm();
+            };
+
+            // Show payment form
+            const showPaymentForm = () => {
+                setTimeout(() => {
+                    const paymentForm = (
+                        <div className="custom-card p-4 mt-2">
+                            <h3 className="font-bold custom-accent mb-3">Payment Information</h3>
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                const paymentData = {
+                                    cardNumber: e.target.cardNumber.value,
+                                    expiryDate: e.target.expiryDate.value,
+                                    cvv: e.target.cvv.value,
+                                    name: e.target.name.value
+                                };
+                                handlePaymentSubmit(paymentData);
+                            }}>
+                                <div className="space-y-3">
+                                    <input 
+                                        type="text" 
+                                        name="cardNumber"
+                                        placeholder="Card Number" 
+                                        className="input input-bordered w-full custom-input" 
+                                        defaultValue="4532 1234 5678 9012"
+                                        required 
+                                    />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <input 
+                                            type="text" 
+                                            name="expiryDate"
+                                            placeholder="MM/YY" 
+                                            className="input input-bordered w-full custom-input" 
+                                            defaultValue="12/25"
+                                            required 
+                                        />
+                                        <input 
+                                            type="text" 
+                                            name="cvv"
+                                            placeholder="CVV" 
+                                            className="input input-bordered w-full custom-input" 
+                                            defaultValue="123"
+                                            required 
+                                        />
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        name="name"
+                                        placeholder="Cardholder Name" 
+                                        className="input input-bordered w-full custom-input" 
+                                        defaultValue="John Smith"
+                                        required 
+                                    />
+                                    <button type="submit" className="custom-btn btn btn-sm w-full">
+                                        Complete Booking
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    );
+                    addMessage("Great! Now I need your payment information to complete the booking.", 'system', paymentForm);
+                }, 1000);
+            };
+
+            // Handle payment form submission
+            const handlePaymentSubmit = (paymentData) => {
+                const fullData = { ...userData, ...paymentData };
+                setUserData(fullData);
+                addMessage(`Payment: ${paymentData.cardNumber}`, 'user');
+                setIsProcessing(true);
+                
+                setTimeout(() => {
+                    setProcessingStep('Searching for services...');
+                    addMessageWithTyping("Thanks! I'm now checking nearby services and calling places for you...");
+                }, 1000);
+
+                setTimeout(() => {
+                    setProcessingStep('Found 15 options in your area');
+                    addMessageWithTyping("✓ Found 15 options in your area");
+                }, 2500);
+
+                setTimeout(() => {
+                    setProcessingStep('Calling 8 places...');
+                    addMessageWithTyping("✓ Called 8 places, 3 responded with availability");
+                }, 3500);
+
+                setTimeout(() => {
+                    setProcessingStep('Preparing results...');
+                    addMessageWithTyping("I've made calls to all the places. Here are the results:");
+                    setRemainingMinutes(prev => Math.max(0, prev - 3));
+                    setIsProcessing(false);
+                }, 4500);
+
+                setTimeout(() => {
+                    const serviceCards = getServiceCards().map((service, index) => (
+                        <div key={index} className="custom-card card card-compact shadow border mb-3">
+                            <div className="card-body">
+                                <h3 className="card-title custom-text">{service.name}</h3>
+                                <div className="flex items-center gap-2">
+                                    <div className="rating rating-sm">
+                                        {[...Array(5)].map((_, i) => (
+                                            <input key={i} type="radio" className="mask mask-star-2 bg-yellow-400" disabled checked={i < Math.floor(service.rating)} />
+                                        ))}
+                                    </div>
+                                    <span className="text-sm custom-text">{service.rating}</span>
+                                </div>
+                                <p className="text-sm custom-text-muted">{service.summary}</p>
+                                <p className="text-xs custom-text-muted">{service.comments}</p>
+                                <div className="card-actions justify-between items-center">
+                                    <span className="font-bold custom-accent">{service.price}</span>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            className="custom-btn btn btn-xs"
+                                            style={{backgroundColor: '#8B5CF6', border: '1px solid #8B5CF6'}}
+                                            onClick={() => showCallRecording({
+                                                clinic: service.name,
+                                                duration: Math.floor(Math.random() * 3) + 2,
+                                                transcription: `[Call started at ${new Date().toLocaleTimeString()}]
+
+Hello, this is Zaico AI calling on behalf of a client. I'm looking to book a ${userData.doctorType ? userData.doctorType.toLowerCase() : (userData.serviceType || 'appointment').toLowerCase()} appointment for tomorrow afternoon.
+
+[Clinic response]
+
+The client has ${userData.insurance || 'Blue Cross Blue Shield'} insurance and a budget of ${userData.budget || '$100-200'}. They're looking for ${userData.symptoms || 'an annual checkup'}. Is 2:00 PM tomorrow available?
+
+[Clinic confirms availability and insurance acceptance]
+
+Perfect! I'll process the payment and send confirmation details. The client will receive a reminder 24 hours before the appointment. Thank you for your time!`
+                                            })}
+                                        >
+                                            📞 Call Recording
+                                        </button>
+                                        <button 
+                                            className="custom-btn btn btn-xs"
+                                            onClick={() => handleServiceSelect(service)}
+                                        >
+                                            Select
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ));
+                    
+                    addMessage("", 'system', serviceCards);
+                }, 5500);
+            };
+
+            // Handle custom message input
+            const handleCustomMessage = () => {
+                if (customMessage.trim() === '') return;
+                
+                setMessages(prev => [...prev, {
+                    type: 'user',
+                    text: customMessage,
+                    timestamp: new Date(),
+                    id: Date.now()
+                }]);
+
+                const message = customMessage.toLowerCase();
+                setCustomMessage('');
+                
+                // Simulate AI response to custom message based on content
+                setTimeout(() => {
+                    if (message.includes('doctor') || message.includes('medical') || message.includes('appointment')) {
+                        // Reduce minutes for medical calls
+                        setRemainingMinutes(prev => Math.max(0, prev - 1));
+                        addMessageWithTyping("I understand you need medical assistance. I'll find the best doctors and clinics for you and make all the calls. No need for you to call anyone!");
+                        setShowForm(true);
+                    } else if (message.includes('clean') || message.includes('cleaning') || message.includes('housekeeper')) {
+                        // Reduce minutes for cleaning calls
+                        setRemainingMinutes(prev => Math.max(0, prev - 1));
+                        addMessageWithTyping("I'll help you find the best cleaning service. I'll call cleaning companies and arrange everything for you.");
+                        setShowForm(true);
+                    } else if (message.includes('restaurant') || message.includes('dinner') || message.includes('lunch') || message.includes('food')) {
+                        // Reduce minutes for restaurant calls
+                        setRemainingMinutes(prev => Math.max(0, prev - 1));
+                        addMessageWithTyping("I'll find the perfect restaurant for you and make the reservation. I'll handle all the calling!");
+                        setShowForm(true);
+                    } else if (message.includes('hair') || message.includes('salon') || message.includes('beauty') || message.includes('manicure')) {
+                        // Reduce minutes for salon calls
+                        setRemainingMinutes(prev => Math.max(0, prev - 1));
+                        addMessageWithTyping("I'll book you at the best beauty salon. I'll call salons and arrange your appointment.");
+                        setShowForm(true);
+                    } else if (message.includes('taxi') || message.includes('ride') || message.includes('uber') || message.includes('transport')) {
+                        // Reduce minutes for taxi calls
+                        setRemainingMinutes(prev => Math.max(0, prev - 1));
+                        addMessageWithTyping("I'll arrange transportation for you. I'll call taxi services and find the best option.");
+                        setShowForm(true);
+                    } else if (message.includes('movie') || message.includes('cinema') || message.includes('date') || message.includes('girlfriend') || message.includes('boyfriend') || message.includes('invite')) {
+                        // Reduce minutes for personal calls
+                        setRemainingMinutes(prev => Math.max(0, prev - 1));
+                        addMessageWithTyping("I'll help you invite your girlfriend to the movies! Let me call her and arrange a nice date for you.");
+                        
+                        setTimeout(() => {
+                            addMessageWithTyping("Calling your girlfriend...");
+                        }, 2000);
+                        
+                        setTimeout(() => {
+                            addMessageWithTyping("Hi [Girlfriend's name], it's your boyfriend calling through his AI assistant. He wanted me to invite you to the movies this weekend. There's a new romantic comedy playing that he thinks you'd love!");
+                        }, 4000);
+                        
+                        setTimeout(() => {
+                            addMessageWithTyping("Response: 'Oh my gosh, that sounds amazing! I'd love to go to the movies with him. What time were you thinking?'");
+                        }, 6000);
+                        
+                        setTimeout(() => {
+                            addMessageWithTyping("Great! I've arranged a movie date for this Saturday at 7 PM. I'll book the tickets and send you both the details. Have a wonderful time!");
+                        }, 8000);
+                        
+                        setTimeout(() => {
+                            addMessageWithTyping("Date arranged successfully! Your girlfriend is excited about the movie night. I've booked tickets for Saturday 7 PM and sent both of you the confirmation details.");
+                        }, 10000);
+                    } else {
+                        // Reduce minutes for general calls
+                        setRemainingMinutes(prev => Math.max(0, prev - 1));
+                        addMessageWithTyping("I understand your request. Let me help you with that. I'll call the relevant places and arrange everything for you. No need for you to make any calls!");
+                        setShowForm(true);
+                    }
+                }, 1500);
+            };
+
+            // Show call recording with transcription
+            const showCallRecording = (callData) => {
+                setTranscriptionData(callData);
+                setShowTranscription(true);
+                // Reduce minutes after call
+                setRemainingMinutes(prev => Math.max(0, prev - callData.duration));
+            };
+
+            // Get service cards based on current scenario
+            const getServiceCards = () => {
+                const lastUserMessage = messages.filter(m => m.type === 'user').pop()?.text || '';
+                
+                if (lastUserMessage.includes('doctor') || lastUserMessage.includes('medical') || userData.serviceType === "Doctor Appointment") {
+                    const budget = userData.budget || "$100-200";
+                    const insurance = userData.insurance || "Blue Cross Blue Shield";
+                    const doctorType = userData.doctorType || "General Practitioner";
+                    
+                    // Filter clinics based on budget and insurance
+                    let clinics = [
+                        {
+                            name: "City Medical Center",
+                            rating: 4.8,
+                            summary: "Available tomorrow at 2:00 PM",
+                            comments: `Accepts ${insurance}, ${doctorType} available`,
+                            price: "$120",
+                            acceptsInsurance: ["Blue Cross Blue Shield", "Aetna", "Cigna"],
+                            budgetRange: "$100-200"
+                        },
+                        {
+                            name: "Family Health Center",
+                            rating: 4.6,
+                            summary: "Available day after tomorrow at 10:00 AM",
+                            comments: `Accepts ${insurance}, friendly staff`,
+                            price: "$95",
+                            acceptsInsurance: ["Blue Cross Blue Shield", "UnitedHealth", "Medicaid"],
+                            budgetRange: "$50-100"
+                        },
+                        {
+                            name: "Premium Medical Group",
+                            rating: 4.9,
+                            summary: "Available next week, flexible timing",
+                            comments: `Accepts ${insurance}, top-rated ${doctorType}`,
+                            price: "$150",
+                            acceptsInsurance: ["Blue Cross Blue Shield", "Aetna", "Cigna", "UnitedHealth"],
+                            budgetRange: "$200-300"
+                        },
+                        {
+                            name: "Community Health Clinic",
+                            rating: 4.4,
+                            summary: "Available this week",
+                            comments: `Accepts ${insurance}, affordable care`,
+                            price: "$75",
+                            acceptsInsurance: ["Medicaid", "Medicare", "Blue Cross Blue Shield"],
+                            budgetRange: "$50-100"
+                        },
+                        {
+                            name: "Specialty Care Center",
+                            rating: 4.7,
+                            summary: "Available next week",
+                            comments: `Accepts ${insurance}, specialized ${doctorType} care`,
+                            price: "$180",
+                            acceptsInsurance: ["Blue Cross Blue Shield", "Aetna", "Cigna"],
+                            budgetRange: "$200-300"
+                        }
+                    ];
+                    
+                    // Filter by insurance acceptance and budget
+                    return clinics.filter(clinic => 
+                        clinic.acceptsInsurance.includes(insurance) && 
+                        clinic.budgetRange === budget
+                    ).slice(0, 3);
+                } else if (lastUserMessage.includes('cleaning')) {
+                    return [
+                        {
+                            name: "Sparkle Clean Services",
+                            rating: 4.7,
+                            summary: "Available this weekend",
+                            comments: "Professional team, eco-friendly products",
+                            price: "$80"
+                        },
+                        {
+                            name: "Home Fresh Cleaning",
+                            rating: 4.5,
+                            summary: "Available next week",
+                            comments: "Reliable service, insured cleaners",
+                            price: "$65"
+                        },
+                        {
+                            name: "Premium Clean Co.",
+                            rating: 4.9,
+                            summary: "Available tomorrow",
+                            comments: "Luxury service, white-glove treatment",
+                            price: "$120"
+                        }
+                    ];
+                } else if (lastUserMessage.includes('restaurant')) {
+                    return [
+                        {
+                            name: "Bella Vista Restaurant",
+                            rating: 4.8,
+                            summary: "Table for 2, tomorrow 7:00 PM",
+                            comments: "Italian cuisine, romantic atmosphere",
+                            price: "$45/person"
+                        },
+                        {
+                            name: "The Garden Bistro",
+                            rating: 4.6,
+                            summary: "Table for 2, day after tomorrow 6:30 PM",
+                            comments: "Farm-to-table, outdoor seating",
+                            price: "$35/person"
+                        },
+                        {
+                            name: "Chef's Table",
+                            rating: 4.9,
+                            summary: "Table for 2, next week 8:00 PM",
+                            comments: "Fine dining, tasting menu",
+                            price: "$85/person"
+                        }
+                    ];
+                } else if (lastUserMessage.includes('salon') || lastUserMessage.includes('beauty')) {
+                    return [
+                        {
+                            name: "Glamour Studio",
+                            rating: 4.7,
+                            summary: "Available tomorrow 2:00 PM",
+                            comments: "Expert stylists, modern techniques",
+                            price: "$75"
+                        },
+                        {
+                            name: "Beauty Haven",
+                            rating: 4.5,
+                            summary: "Available day after tomorrow 10:00 AM",
+                            comments: "Relaxing atmosphere, skilled professionals",
+                            price: "$60"
+                        },
+                        {
+                            name: "Luxury Spa & Salon",
+                            rating: 4.9,
+                            summary: "Available next week",
+                            comments: "Premium services, full spa experience",
+                            price: "$120"
+                        }
+                    ];
+                } else if (lastUserMessage.includes('taxi') || lastUserMessage.includes('ride')) {
+                    return [
+                        {
+                            name: "City Taxi",
+                            rating: 4.7,
+                            summary: "ETA: 3-5 minutes",
+                            comments: "Professional driver, clean car",
+                            price: "$15-20"
+                        },
+                        {
+                            name: "Express Ride",
+                            rating: 4.5,
+                            summary: "ETA: 5-8 minutes",
+                            comments: "Economy option, reliable",
+                            price: "$12-18"
+                        },
+                        {
+                            name: "Premium Transport",
+                            rating: 4.9,
+                            summary: "ETA: 2-4 minutes",
+                            comments: "Luxury car, experienced driver",
+                            price: "$25-30"
+                        }
+                    ];
+                } else if (lastUserMessage.includes('support') || lastUserMessage.includes('customer')) {
+                    return [
+                        {
+                            name: "Customer Support Call",
+                            rating: 4.8,
+                            summary: "Resolved billing issue",
+                            comments: "Friendly representative, quick resolution",
+                            price: "Free"
+                        },
+                        {
+                            name: "Technical Support Call",
+                            rating: 4.6,
+                            summary: "Issue resolved successfully",
+                            comments: "Professional service, clear instructions",
+                            price: "Free"
+                        },
+                        {
+                            name: "Account Support Call",
+                            rating: 4.9,
+                            summary: "Account updated successfully",
+                            comments: "Helpful representative, quick service",
+                            price: "Free"
+                        }
+                    ];
+                } else if (lastUserMessage.includes('delivery')) {
+                    return [
+                        {
+                            name: "Delivery Service Call",
+                            rating: 4.6,
+                            summary: "Order status updated",
+                            comments: "Professional service, on-time delivery",
+                            price: "Free"
+                        },
+                        {
+                            name: "Food Delivery Call",
+                            rating: 4.7,
+                            summary: "Order confirmed and tracking provided",
+                            comments: "Friendly service, accurate delivery time",
+                            price: "Free"
+                        },
+                        {
+                            name: "Package Delivery Call",
+                            rating: 4.8,
+                            summary: "Delivery scheduled successfully",
+                            comments: "Reliable service, clear communication",
+                            price: "Free"
+                        }
+                    ];
+                } else if (lastUserMessage.includes('movie') || lastUserMessage.includes('girlfriend') || lastUserMessage.includes('invite')) {
+                    return [
+                        {
+                            name: "Movie Date Call",
+                            rating: 4.9,
+                            summary: "Date arranged successfully",
+                            comments: "Romantic conversation, excited response",
+                            price: "Free"
+                        },
+                        {
+                            name: "Personal Invitation Call",
+                            rating: 4.8,
+                            summary: "Invitation accepted with enthusiasm",
+                            comments: "Sweet conversation, positive outcome",
+                            price: "Free"
+                        },
+                        {
+                            name: "Relationship Call",
+                            rating: 4.9,
+                            summary: "Message delivered with care",
+                            comments: "Respectful conversation, clear communication",
+                            price: "Free"
+                        }
+                    ];
+                } else if (lastUserMessage.includes('family') || lastUserMessage.includes('friends')) {
+                    return [
+                        {
+                            name: "Family Call",
+                            rating: 4.8,
+                            summary: "Message delivered successfully",
+                            comments: "Warm conversation, family connection",
+                            price: "Free"
+                        },
+                        {
+                            name: "Friends Call",
+                            rating: 4.7,
+                            summary: "Plans made successfully",
+                            comments: "Friendly conversation, positive response",
+                            price: "Free"
+                        },
+                        {
+                            name: "Personal Call",
+                            rating: 4.9,
+                            summary: "Message delivered with care",
+                            comments: "Respectful conversation, clear communication",
+                            price: "Free"
+                        }
+                    ];
+                }
+                
+                // Default to medical services
+                return [
+                    {
+                        name: "City Dental Clinic",
+                        rating: 4.8,
+                        summary: "Available tomorrow at 2:00 PM",
+                        comments: "Modern equipment, experienced dentists",
+                        price: "$120"
+                    },
+                    {
+                        name: "Family Health Center",
+                        rating: 4.6,
+                        summary: "Available day after tomorrow at 10:00 AM",
+                        comments: "Friendly staff, good reviews",
+                        price: "$95"
+                    },
+                    {
+                        name: "Premium Medical Group",
+                        rating: 4.9,
+                        summary: "Available next week, flexible timing",
+                        comments: "Top-rated facility, comprehensive care",
+                        price: "$150"
+                    }
+                ];
+            };
+
+            // Handle service selection
+            const handleServiceSelect = (service) => {
+                addMessage(`I choose: ${service.name}`, 'user');
+                // Карточки клиник остаются видимыми
+                
+                setTimeout(() => {
+                    addMessageWithTyping(`Perfect! I've successfully booked your service at ${service.name}.`);
+                }, 1000);
+
+                setTimeout(() => {
+                    const successCard = (
+                        <div className="custom-card border border-green-500 slide-up mt-2">
+                            <div className="card-body">
+                                <div className="flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <div>
+                                        <h3 className="font-bold custom-text">Booking Confirmed!</h3>
+                                        <div className="text-xs custom-text-muted">Booking confirmed at {service.name} for {service.price}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                    addMessage(`Confirmation email sent to your email address\nSMS reminder will be sent 24 hours before\nPayment processed: ${service.price}\nService confirmed for tomorrow at 2:00 PM`, 'system', successCard);
+                }, 2500);
+
+                setTimeout(() => {
+                    const continueButtons = (
+                        <div className="space-y-3 mt-3">
+                            <button 
+                                className="custom-btn btn w-full"
+                                onClick={() => handleScenarioSelect("booking")}
+                            >
+                                Book another service
+                            </button>
+                            <button 
+                                className="custom-btn btn w-full"
+                                onClick={() => handleScenarioSelect("calling")}
+                            >
+                                Make another call
+                            </button>
+                        </div>
+                    );
+                    addMessage("Is there anything else I can help you with? You can book another service or ask me anything!", 'system', null, continueButtons);
+                }, 4500);
+            };
+
+            // Landing page
+            if (currentStep === 'landing') {
+                return (
+                    <div className="min-h-screen custom-bg flex items-center justify-center p-4">
+                        <div className="w-full max-w-6xl">
+                            <div className="grid md:grid-cols-2 gap-12 items-center mb-12">
+                                <div className="text-center md:text-left">
+                                    <h1 className="text-6xl font-bold custom-accent mb-6">
+                                        Zaico
+                                    </h1>
+                                    <p className="text-2xl custom-text-muted mb-8">
+                                        AI Concierge for Gen Z
+                                    </p>
+                                    <p className="text-lg custom-text mb-8">
+                                        Never make another phone call again. Our AI assistant handles all your calls, 
+                                        bookings, and arrangements so you can focus on what matters most.
+                                    </p>
+                                </div>
+                                <div className="flex justify-center md:justify-end">
+                                    <img 
+                                        src="https://i.ibb.co/R4JLgLDz/download-4.png" 
+                                        alt="Zaico AI Assistant" 
+                                        className="w-64 h-64 md:w-80 md:h-80 object-contain"
+                                        style={{maxWidth: '100%', height: 'auto'}}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-3 gap-8 mb-12">
+                                <div className="custom-card p-6 text-center slide-in-left">
+                                    <h3 className="text-xl font-bold custom-accent mb-3">Phone Anxiety Relief</h3>
+                                    <p className="custom-text-muted">
+                                        No more stress about calling doctors, restaurants, or services. 
+                                        We handle all the awkward conversations for you.
+                                    </p>
+                                </div>
+                                
+                                <div className="custom-card p-6 text-center slide-up">
+                                    <h3 className="text-xl font-bold custom-accent mb-3">AI-Powered</h3>
+                                    <p className="custom-text-muted">
+                                        Advanced AI that understands context, makes decisions, and negotiates on your behalf with human-like conversation.
+                                    </p>
+                                </div>
+                                
+                                <div className="custom-card p-6 text-center slide-in-right">
+                                    <h3 className="text-xl font-bold custom-accent mb-3">Instant Results</h3>
+                                    <p className="custom-text-muted">
+                                        Get appointments, reservations, and services arranged in minutes, not hours of phone tag and waiting.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="text-center">
+                                <div className="flex gap-4 justify-center mb-4">
+                                    <button 
+                                        className="custom-btn btn btn-lg px-12 py-4 text-lg pulse-glow scale-in"
+                                        onClick={startDemo}
+                                    >
+                                        Run Demo
+                                    </button>
+                                    <button 
+                                        className="custom-btn btn btn-outline btn-lg px-8 py-4 text-lg slide-in-right"
+                                        onClick={() => setCurrentStep('investors')}
+                                    >
+                                        Investors
+                                    </button>
+                                </div>
+                                <p className="custom-text-muted mt-4 text-sm slide-in-left">
+                                    Experience how Zaico eliminates phone calls from your life
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Define slides array
+            const slides = [
+                {
+                    title: "1. Problem",
+                    content: (
+                        <div className="space-y-3">
+                            <p className="custom-text">For Gen Z, phone calls are one of the most stressful everyday tasks</p>
+                            <p className="custom-text">Doctors, salons, real estate, local services → still phone-gated</p>
+                            <p className="custom-text">Phone anxiety blocks millions from solving basic needs</p>
+                        </div>
+                    )
+                },
+                {
+                    title: "2. Problem Proof – Gen Z hates phone calls",
+                    content: (
+                        <div className="space-y-3">
+                            <div className="bg-red-900/20 p-4 rounded border-l-4 border-red-500">
+                                <p className="custom-text"><strong>59%</strong> of young workers prefer texting over calling (Robert Walters, 2022)</p>
+                            </div>
+                            <div className="bg-red-900/20 p-4 rounded border-l-4 border-red-500">
+                                <p className="custom-text"><strong>87%</strong> of Gen Z in Australia avoid unpleasant calls (CommBank, 2023)</p>
+                            </div>
+                            <div className="bg-red-900/20 p-4 rounded border-l-4 border-red-500">
+                                <p className="custom-text"><strong>26%</strong> of Gen Z in UK actively avoid calls (Sky, 2022)</p>
+                            </div>
+                            <p className="custom-text-muted">Cultural shift: calls have become a pain point for the younger generation.</p>
+                        </div>
+                    )
+                },
+                {
+                    title: "3. Solution",
+                    content: (
+                        <div className="space-y-3">
+                            <p className="custom-text"><strong>Zaico</strong> – AI concierge that makes every call for you</p>
+                            <p className="custom-text">Books, arranges, pays, and confirms</p>
+                            <p className="custom-text">Works via simple text input</p>
+                            <p className="custom-text"><strong>You never have to pick up the phone again</strong></p>
+                        </div>
+                    )
+                },
+                {
+                    title: "4. How It Works",
+                    content: (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">1</div>
+                                <p className="custom-text">User types: "Book a doctor's appointment"</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">2</div>
+                                <p className="custom-text">Zaico calls clinics, checks availability</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">3</div>
+                                <p className="custom-text">User chooses preferred option</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">4</div>
+                                <p className="custom-text">Zaico books, processes payment, sends confirmation & reminder</p>
+                            </div>
+                            <p className="custom-text-muted">➡ Appointment done. No calls made.</p>
+                        </div>
+                    )
+                },
+                {
+                    title: "5. Competition",
+                    content: (
+                        <div className="space-y-4">
+                            <div className="bg-red-900/20 p-4 rounded border-l-4 border-red-500">
+                                <h3 className="font-bold custom-accent mb-2">Google Duplex</h3>
+                                <div className="space-y-2 text-sm">
+                                    <p className="custom-text">• Only narrow domains, limited devices & regions</p>
+                                    <p className="custom-text">• Geo & language limits: weak with accents/dialects</p>
+                                    <p className="custom-text">• Privacy barriers: GDPR/HIPAA restrict usage</p>
+                                </div>
+                            </div>
+                            <div className="bg-yellow-900/20 p-4 rounded border-l-4 border-yellow-500">
+                                <h3 className="font-bold custom-accent mb-2">Big Tech Limitations</h3>
+                                <div className="space-y-2 text-sm">
+                                    <p className="custom-text">• No clear market leader yet</p>
+                                    <p className="custom-text">• Weak localization and customization</p>
+                                    <p className="custom-text">• Privacy and compliance restrictions</p>
+                                </div>
+                            </div>
+                            <p className="custom-text-muted">Big Tech doesn't cover localization, customization, and privacy → Zaico = more flexible, faster, closer to market.</p>
+                        </div>
+                    )
+                },
+                {
+                    title: "6. Market Opportunity",
+                    content: (
+                        <div className="space-y-3">
+                            <p className="custom-text"><strong>$100B+</strong> global spend on healthcare, beauty, real estate, local services</p>
+                            <p className="custom-text">All categories depend on phone-based booking</p>
+                            <p className="custom-text"><strong>Zaico = universal AI interface to offline services</strong></p>
+                        </div>
+                    )
+                },
+                {
+                    title: "7. Business Model",
+                    content: (
+                        <div className="space-y-4">
+                            <div className="grid md:grid-cols-3 gap-4">
+                                <div className="bg-purple-900/20 p-4 rounded border-l-4 border-purple-500">
+                                    <h3 className="font-bold custom-accent mb-2">Pay-as-you-go</h3>
+                                    <p className="custom-text text-sm">Buy minutes ($4.49 – $29.99 packs)</p>
+                                </div>
+                                <div className="bg-blue-900/20 p-4 rounded border-l-4 border-blue-500">
+                                    <h3 className="font-bold custom-accent mb-2">Virtual Numbers</h3>
+                                    <p className="custom-text text-sm">$14.99 one-time (SMS, calls, banking, couriers)</p>
+                                </div>
+                                <div className="bg-green-900/20 p-4 rounded border-l-4 border-green-500">
+                                    <h3 className="font-bold custom-accent mb-2">Subscriptions</h3>
+                                    <p className="custom-text text-sm">Basic $9.99/mo, Pro $19.99/mo, Business $29.99/mo</p>
+                                </div>
+                            </div>
+                            <div className="bg-orange-900/20 p-4 rounded border-l-4 border-orange-500">
+                                <h4 className="font-bold custom-accent mb-2">Monetization Logic</h4>
+                                <div className="space-y-1 text-sm">
+                                    <p className="custom-text">• Minutes → расходный материал (дорогие, чтобы стимулировать подписку)</p>
+                                    <p className="custom-text">• Персональный номер → core-продукт, без него сервис не имеет смысла</p>
+                                    <p className="custom-text">• Подписка с AI-консьержем → главный источник регулярного дохода (MONEY MACHINE 💰)</p>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "8. Unit Economics",
+                    content: (
+                        <div className="space-y-4">
+                            <div className="mb-4 p-4 bg-blue-900/20 rounded border-l-4 border-blue-500">
+                                <p className="custom-text text-sm"><strong>Assumptions:</strong> CAC ~$5.3, Gross Margin 75%, Lifetime ~12 months</p>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="table table-zebra w-full">
+                                    <thead>
+                                        <tr>
+                                            <th className="custom-text">ARPU</th>
+                                            <th className="custom-text">LTV</th>
+                                            <th className="custom-text">LTV:CAC</th>
+                                            <th className="custom-text">Payback</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td className="custom-text">$20 (Optimistic)</td>
+                                            <td className="custom-text">$180</td>
+                                            <td className="custom-text">34x</td>
+                                            <td className="custom-text">0.35 mo</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="custom-text">$15 (Base)</td>
+                                            <td className="custom-text">$135</td>
+                                            <td className="custom-text">25x</td>
+                                            <td className="custom-text">0.47 mo</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="custom-text">$10 (Conservative)</td>
+                                            <td className="custom-text">$90</td>
+                                            <td className="custom-text">17x</td>
+                                            <td className="custom-text">0.7 mo</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="custom-text">$5 (Stress)</td>
+                                            <td className="custom-text">$45</td>
+                                            <td className="custom-text">8.5x</td>
+                                            <td className="custom-text">1.4 mo</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p className="custom-text-muted mt-3">Even in stress-case: CAC pays back &lt;2 months, LTV:CAC &gt;8x.</p>
+                        </div>
+                    )
+                },
+                {
+                    title: "9. Financial Projections",
+                    content: (
+                        <div className="space-y-6">
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <h3 className="font-bold custom-accent mb-3">User Growth (12–24 months)</h3>
+                                    <div className="space-y-2">
+                                        <p className="custom-text">M0: 500 beta users</p>
+                                        <p className="custom-text">M6: 10,000</p>
+                                        <p className="custom-text">M12: 50,000</p>
+                                        <p className="custom-text">M24: 250,000+</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold custom-accent mb-3">Revenue Forecast</h3>
+                                    <div className="space-y-2">
+                                        <p className="custom-text">Year 1: ~$6M ARR</p>
+                                        <p className="custom-text">Year 2: ~$25M ARR</p>
+                                        <p className="custom-text">Year 3: ~$75M ARR</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mt-6 p-4 bg-green-900/20 rounded border-l-4 border-green-500">
+                                <h4 className="font-bold custom-accent mb-2">Unit Economics Summary</h4>
+                                <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                        <p className="custom-text"><strong>Gross Margin:</strong> 75–80%</p>
+                                    </div>
+                                    <div>
+                                        <p className="custom-text"><strong>Payback:</strong> &lt; 6 months</p>
+                                    </div>
+                                    <div>
+                                        <p className="custom-text"><strong>Growth Rate:</strong> 20x in 2 years</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "10. Fundraising",
+                    content: (
+                        <div className="space-y-6">
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <div className="space-y-3">
+                                        <p className="custom-text"><strong>Raising:</strong> $600k</p>
+                                        <p className="custom-text"><strong>Equity:</strong> 5%</p>
+                                        <p className="custom-text"><strong>Valuation:</strong> $12M pre-money</p>
+                                        <p className="custom-text"><strong>Runway:</strong> ~18 months</p>
+                                    </div>
+                                    <div className="mt-4 p-3 bg-purple-900/20 rounded">
+                                        <p className="custom-text text-sm"><strong>Post-money:</strong> $12.6M</p>
+                                        <p className="custom-text text-sm"><strong>Target:</strong> Pre-seed investors</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold custom-accent mb-3">Use of Funds</h3>
+                                    <div className="space-y-2">
+                                        <p className="custom-text">• Product development & AI infra</p>
+                                        <p className="custom-text">• Growth → 50k users</p>
+                                        <p className="custom-text">• SMB integrations</p>
+                                        <p className="custom-text">• Team expansion (engineering, AI, GTM)</p>
+                                    </div>
+                                    <div className="mt-4 p-3 bg-orange-900/20 rounded">
+                                        <h4 className="font-bold custom-accent mb-2 text-sm">Milestones (18 months)</h4>
+                                        <div className="space-y-1 text-sm">
+                                            <p className="custom-text">• 50k active users</p>
+                                            <p className="custom-text">• $500k ARR</p>
+                                            <p className="custom-text">• Seed round ready</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "11. Team",
+                    content: (
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div className="bg-purple-900/20 p-4 rounded border-l-4 border-purple-500">
+                                    <h3 className="font-bold custom-accent mb-2">Gleb Ikonnikov – CEO & CTO</h3>
+                                    <p className="custom-text text-sm mb-2">Expert in high-load scalable backend systems</p>
+                                    <a href="https://www.linkedin.com/in/gleb-ikonnikov/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm">LinkedIn</a>
+                                </div>
+                                <div className="bg-blue-900/20 p-4 rounded border-l-4 border-blue-500">
+                                    <h3 className="font-bold custom-accent mb-2">Alisa Miroshnichenko – CPO</h3>
+                                    <p className="custom-text text-sm mb-2">Product designer with UX for AI products</p>
+                                    <a href="https://www.linkedin.com/in/alisa-miroshnichenko-a34269203/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm">LinkedIn</a>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="bg-green-900/20 p-4 rounded border-l-4 border-green-500">
+                                    <h3 className="font-bold custom-accent mb-2">Pavel Sukmanov – Sales Manager</h3>
+                                    <p className="custom-text text-sm mb-2">Onboarding non-technical business owners</p>
+                                    <a href="https://www.linkedin.com/in/pavel-sukmanov-90b2932a8/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm">LinkedIn</a>
+                                </div>
+                                <div className="bg-orange-900/20 p-4 rounded border-l-4 border-orange-500">
+                                    <h3 className="font-bold custom-accent mb-2">Eugene Anisei – Startup Advisor</h3>
+                                    <p className="custom-text text-sm mb-2">Strategic advisor for growth & fundraising</p>
+                                    <a href="https://www.linkedin.com/in/eugen-anisei/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm">LinkedIn</a>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "12. Vision & Closing",
+                    content: (
+                        <div className="space-y-4 text-center">
+                            <p className="custom-text text-lg">Zaico transforms how Gen Z gets things done</p>
+                            <p className="custom-text">No stress, no awkward calls, no wasted time</p>
+                            <p className="custom-text"><strong>Long-term: Zaico = AI operating system for real-world tasks</strong></p>
+                            <div className="text-3xl font-bold custom-accent">
+                                Zaico — Stop calling. Start living.
+                            </div>
+                        </div>
+                    )
+                }
+            ];
+
+            // Investors page
+            if (currentStep === 'investors') {
+                return (
+                    <div className="min-h-screen custom-bg p-4">
+                        <div className="max-w-6xl mx-auto">
+                            {/* Header */}
+                            <div className="text-center mb-8">
+                                <button 
+                                    className="custom-btn btn btn-sm mb-4"
+                                    onClick={() => setCurrentStep('landing')}
+                                >
+                                    ← Back to Demo
+                                </button>
+                                <h1 className="text-4xl font-bold custom-accent mb-2">Zaico</h1>
+                                <p className="text-xl custom-text-muted">Investor Pitch Deck</p>
+                            </div>
+
+                            {/* Slide Navigation */}
+                            <div className="flex justify-center mb-6">
+                                <div className="flex space-x-2">
+                                    {slides.map((_, index) => (
+                                        <button
+                                            key={index}
+                                            className={`w-3 h-3 rounded-full transition-colors ${
+                                                index === currentSlide
+                                                    ? 'bg-purple-500'
+                                                    : 'bg-gray-600 hover:bg-gray-500'
+                                            }`}
+                                            onClick={() => goToSlide(index)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Current Slide */}
+                            <div className="custom-card p-8 slide-up min-h-96 flex flex-col justify-center">
+                                <h2 className="text-3xl font-bold custom-accent mb-6 text-center">
+                                    {slides[currentSlide].title}
+                                </h2>
+                                <div className="flex-1">
+                                    {slides[currentSlide].content}
+                                </div>
+                            </div>
+
+                            {/* Navigation Buttons */}
+                            <div className="flex justify-between items-center mt-8">
+                                <button 
+                                    className="custom-btn btn"
+                                    onClick={prevSlide}
+                                    disabled={currentSlide === 0}
+                                >
+                                    ← Previous
+                                </button>
+                                <div className="text-center">
+                                    <span className="custom-text">{currentSlide + 1} of {slides.length}</span>
+                                </div>
+                                <button 
+                                    className="custom-btn btn"
+                                    onClick={nextSlide}
+                                    disabled={currentSlide === slides.length - 1}
+                                >
+                                    Next →
+                                </button>
+                            </div>
+
+                            {/* Back to Demo Button */}
+                            <div className="text-center mt-8">
+                                <button 
+                                    className="custom-btn btn btn-lg"
+                                    onClick={() => setCurrentStep('landing')}
+                                >
+                                    ← Back to Demo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen custom-bg flex items-center justify-center p-4">
+                    <div className="w-full max-w-2xl">
+                        <div className="custom-card rounded-2xl shadow-xl overflow-hidden">
+                            {/* Header */}
+                            <div className="custom-card border-b border-gray-600 p-4">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h1 className="text-xl font-bold custom-accent">
+                                            Zaico
+                                        </h1>
+                                        <p className="text-sm custom-text-muted">ai concierge for Gen Z</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-sm font-semibold custom-text">
+                                            {remainingMinutes} min left
+                                        </div>
+                                        <div className="text-xs custom-text-muted">
+                                            {currentNumber}
+                                        </div>
+                                        <button 
+                                            className="custom-btn btn btn-sm mt-1"
+                                            onClick={() => setShowUpgrade(true)}
+                                        >
+                                            Upgrade
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Chat Messages */}
+                            <div className="h-96 overflow-y-auto p-4 space-y-4 custom-bg">
+                                {messages.map((message) => (
+                                    <div key={message.id} className="fade-in">
+                                        <div className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'}`}>
+                                            {message.type !== 'user' && (
+                                                <div className="chat-image avatar">
+                                                    <div className="w-10 rounded-full">
+                                                        <img 
+                                                            src="https://i.ibb.co/R4JLgLDz/download-4.png" 
+                                                            alt="Zaico AI Assistant"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className={`chat-bubble ${message.type === 'user' ? 'custom-user-bubble' : 'custom-chat-bubble'}`}>
+                                                {message.text}
+                                            </div>
+                                            <div className="chat-footer custom-text-muted text-xs">
+                                                {message.timestamp.toLocaleTimeString()}
+                                            </div>
+                                        </div>
+                                        {message.content && (
+                                            <div className="mt-2 ml-12">
+                                                {message.content}
+                                            </div>
+                                        )}
+                                        {message.buttons && (
+                                            <div className="mt-2 ml-12">
+                                                {message.buttons}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {/* Typing Indicator */}
+                                {isTyping && (
+                                    <div className="chat chat-start fade-in">
+                                        <div className="chat-image avatar">
+                                            <div className="w-10 rounded-full">
+                                                <img 
+                                                    src="https://i.ibb.co/R4JLgLDz/download-4.png" 
+                                                    alt="Zaico AI Assistant"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="chat-bubble custom-chat-bubble">
+                                            <div className="flex space-x-1">
+                                                <div className="w-2 h-2 custom-accent rounded-full typing-animation"></div>
+                                                <div className="w-2 h-2 custom-accent rounded-full typing-animation" style={{animationDelay: '0.2s'}}></div>
+                                                <div className="w-2 h-2 custom-accent rounded-full typing-animation" style={{animationDelay: '0.4s'}}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+
+
+
+                                {/* Processing Indicator */}
+                                {isProcessing && (
+                                    <div className="custom-card shadow border slide-up">
+                                        <div className="card-body">
+                                            <div className="flex items-center gap-3">
+                                                <span className="loading loading-spinner loading-md custom-accent"></span>
+                                                <div>
+                                                    <h4 className="font-semibold text-sm custom-text">Processing your request...</h4>
+                                                    <p className="text-xs custom-text-muted">{processingStep}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+
+
+
+
+                                <div ref={messagesEndRef} />
+                            </div>
+
+                            {/* Custom Message Input - Always Visible */}
+                            <div className="p-4 custom-card border-t border-gray-600">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Describe a problem that requires a phone call and we'll solve it"
+                                        className="custom-input input input-bordered input-sm flex-1"
+                                        value={customMessage}
+                                        onChange={(e) => setCustomMessage(e.target.value)}
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                                handleCustomMessage();
+                                            }
+                                        }}
+                                    />
+                                    <button 
+                                        className="custom-btn btn btn-sm"
+                                        onClick={handleCustomMessage}
+                                        disabled={!customMessage.trim()}
+                                    >
+                                        Send
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    {/* Temporary Test Button - Remove after testing */}
+                    <div className="fixed bottom-4 right-4 z-50">
+                        <button 
+                            className="btn btn-sm bg-green-600 text-white"
+                            onClick={() => {
+                                showCallRecording({
+                                    clinic: "Test Clinic",
+                                    duration: 3,
+                                    transcription: `[Call started at ${new Date().toLocaleTimeString()}]
+
+Hello, this is Zaico AI calling on behalf of a client. I'm looking to book a doctor appointment for tomorrow afternoon.
+
+[Clinic response]
+
+The client has Blue Cross Blue Shield insurance and a budget of $100-200. They're looking for an annual checkup. Is 2:00 PM tomorrow available?
+
+[Clinic confirms availability and insurance acceptance]
+
+Perfect! I'll process the payment and send confirmation details. The client will receive a reminder 24 hours before the appointment. Thank you for your time!`
+                                });
+                            }}
+                        >
+                            Test Call Recording
+                        </button>
+                    </div>
+
+                    {/* Call Transcription Modal */}
+                    {showTranscription && transcriptionData && (
+                        <div className="modal modal-open" style={{zIndex: 9999}}>
+                            <div className="modal-backdrop" onClick={() => setShowTranscription(false)}></div>
+                            <div className="modal-box max-w-2xl custom-card" style={{zIndex: 10000}}>
+                                <h3 className="font-bold text-lg mb-4 custom-text">
+                                    Call Recording - {transcriptionData.clinic}
+                                </h3>
+                                <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm font-semibold custom-text">Duration: {transcriptionData.duration} minutes</span>
+                                        <span className="text-sm custom-text-muted">{currentNumber}</span>
+                                    </div>
+                                    <div className="text-sm custom-text">
+                                        <strong>Transcription:</strong>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-800 p-4 rounded-lg max-h-96 overflow-y-auto">
+                                    <div className="text-sm whitespace-pre-wrap custom-text leading-relaxed">
+                                        {transcriptionData.transcription.split('\n').map((line, index) => {
+                                            if (line.includes('AI Assistant:')) {
+                                                return <div key={index} className="mb-2 p-2 bg-purple-900/30 rounded border-l-4 border-purple-500"><span className="font-semibold text-purple-300">AI Assistant:</span> {line.replace('AI Assistant:', '')}</div>;
+                                            } else if (line.includes('[Clinic]') || line.includes('[Restaurant]') || line.includes('[Salon]') || line.includes('[Taxi]')) {
+                                                return <div key={index} className="mb-2 p-2 bg-blue-900/30 rounded border-l-4 border-blue-500"><span className="font-semibold text-blue-300">{line.split(':')[0]}:</span> {line.split(':').slice(1).join(':')}</div>;
+                                            } else if (line.includes('[Call started') || line.includes('[Call ended')) {
+                                                return <div key={index} className="text-xs custom-text-muted italic text-center my-2">{line}</div>;
+                                            } else if (line.trim() === '') {
+                                                return <div key={index} className="h-2"></div>;
+                                            } else {
+                                                return <div key={index} className="text-sm custom-text">{line}</div>;
+                                            }
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="modal-action">
+                                    <button 
+                                        className="custom-btn btn"
+                                        onClick={() => setShowTranscription(false)}
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Upgrade Modal */}
+                    {showUpgrade && (
+                        <div className="modal modal-open">
+                            <div className="modal-box custom-card max-w-2xl">
+                                <h3 className="font-bold text-lg mb-4 custom-text">
+                                    Buy Minutes & Phone Number
+                                </h3>
+                                
+                                <div className="space-y-4">
+                                    {/* Current Status */}
+                                    <div className="custom-card border border-blue-500">
+                                        <div className="card-body">
+                                            <div className="flex items-center gap-3">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6 text-blue-400">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                <div>
+                                                    <h4 className="font-bold custom-text">Current Status</h4>
+                                                    <p className="text-sm custom-text-muted">{remainingMinutes} minutes left on {currentNumber}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Minutes Packages */}
+                                    <div>
+                                        <h4 className="font-bold custom-text mb-3">Buy Minutes (Top-up)</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="custom-card border border-gray-600 cursor-pointer hover:border-purple-500 transition-colors" onClick={() => {
+                                                setRemainingMinutes(prev => prev + 5);
+                                                setShowUpgrade(false);
+                                                addMessageWithTyping("Added 5 minutes to your account! You now have " + (remainingMinutes + 5) + " minutes left.");
+                                            }}>
+                                                <div className="card-body p-3 text-center">
+                                                    <div className="text-lg font-bold custom-accent">5 min</div>
+                                                    <div className="text-sm custom-text">$4.49</div>
+                                                </div>
+                                            </div>
+                                            <div className="custom-card border border-gray-600 cursor-pointer hover:border-purple-500 transition-colors" onClick={() => {
+                                                setRemainingMinutes(prev => prev + 10);
+                                                setShowUpgrade(false);
+                                                addMessageWithTyping("Added 10 minutes to your account! You now have " + (remainingMinutes + 10) + " minutes left.");
+                                            }}>
+                                                <div className="card-body p-3 text-center">
+                                                    <div className="text-lg font-bold custom-accent">10 min</div>
+                                                    <div className="text-sm custom-text">$7.49</div>
+                                                </div>
+                                            </div>
+                                            <div className="custom-card border border-gray-600 cursor-pointer hover:border-purple-500 transition-colors" onClick={() => {
+                                                setRemainingMinutes(prev => prev + 15);
+                                                setShowUpgrade(false);
+                                                addMessageWithTyping("Added 15 minutes to your account! You now have " + (remainingMinutes + 15) + " minutes left.");
+                                            }}>
+                                                <div className="card-body p-3 text-center">
+                                                    <div className="text-lg font-bold custom-accent">15 min</div>
+                                                    <div className="text-sm custom-text">$10.49</div>
+                                                </div>
+                                            </div>
+                                            <div className="custom-card border border-purple-500 cursor-pointer hover:border-purple-400 transition-colors relative" onClick={() => {
+                                                setRemainingMinutes(prev => prev + 50);
+                                                setShowUpgrade(false);
+                                                addMessageWithTyping("Added 50 minutes to your account! You now have " + (remainingMinutes + 50) + " minutes left. Great value!");
+                                            }}>
+                                                <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
+                                                    Best Value
+                                                </div>
+                                                <div className="card-body p-3 text-center">
+                                                    <div className="text-lg font-bold custom-accent">50 min</div>
+                                                    <div className="text-sm custom-text">$29.99</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Personal Number */}
+                                    <div>
+                                        <h4 className="font-bold custom-text mb-3">Personal Virtual Number</h4>
+                                        <div className="custom-card border border-purple-500">
+                                            <div className="card-body">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <div>
+                                                        <h4 className="card-title custom-accent">Virtual Number</h4>
+                                                        <p className="text-sm custom-text-muted">Personal number for SMS & calls</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-2xl font-bold custom-accent">$14.99</div>
+                                                        <div className="text-xs custom-text-muted">one-time</div>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2 mb-4">
+                                                    <div className="custom-text text-sm">
+                                                        ✓ Personal virtual number
+                                                    </div>
+                                                    <div className="custom-text text-sm">
+                                                        ✓ Receive SMS (banks, services, auth)
+                                                    </div>
+                                                    <div className="custom-text text-sm">
+                                                        ✓ Incoming calls (couriers, clients)
+                                                    </div>
+                                                    <div className="custom-text text-sm">
+                                                        ✓ Compatible with AI concierge
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    className="custom-btn btn w-full"
+                                                    onClick={() => {
+                                                        const newNumber = '+1 (555) ' + Math.floor(Math.random() * 900 + 100) + '-' + Math.floor(Math.random() * 9000 + 1000);
+                                                        setCurrentNumber(newNumber);
+                                                        setRemainingMinutes(999);
+                                                        setShowUpgrade(false);
+                                                        addMessageWithTyping("Congratulations! You now have your own personal number: " + newNumber + ". You can receive SMS and calls, plus unlimited AI concierge minutes!");
+                                                    }}
+                                                >
+                                                    Buy Virtual Number
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* AI Concierge Subscriptions */}
+                                    <div>
+                                        <h4 className="font-bold custom-text mb-3">AI Concierge Subscriptions</h4>
+                                        <div className="space-y-3">
+                                            {/* Basic Plan */}
+                                            <div className="custom-card border border-gray-600">
+                                                <div className="card-body">
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <div>
+                                                            <h4 className="card-title custom-text">Basic</h4>
+                                                            <p className="text-sm custom-text-muted">AI answers when you're busy</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="text-xl font-bold custom-text">$9.99</div>
+                                                            <div className="text-xs custom-text-muted">/month</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1 mb-3">
+                                                        <div className="custom-text text-sm">✓ AI answers calls when busy</div>
+                                                        <div className="custom-text text-sm">✓ Voice auto-replies + SMS forwarding</div>
+                                                        <div className="custom-text text-sm">✓ Perfect for couriers & personal tasks</div>
+                                                    </div>
+                                                    <button 
+                                                        className="custom-btn btn btn-sm w-full"
+                                                        onClick={() => {
+                                                            setShowUpgrade(false);
+                                                            addMessageWithTyping("Great choice! Basic AI Concierge plan activated for $9.99/month. AI will now handle your calls when you're busy!");
+                                                        }}
+                                                    >
+                                                        Subscribe Basic
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Pro Plan */}
+                                            <div className="custom-card border border-purple-500 relative">
+                                                <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
+                                                    Popular
+                                                </div>
+                                                <div className="card-body">
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <div>
+                                                            <h4 className="card-title custom-accent">Pro</h4>
+                                                            <p className="text-sm custom-text-muted">Smart call sorting + recording</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="text-xl font-bold custom-accent">$19.99</div>
+                                                            <div className="text-xs custom-text-muted">/month</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1 mb-3">
+                                                        <div className="custom-text text-sm">✓ Everything in Basic</div>
+                                                        <div className="custom-text text-sm">✓ Smart call sorting (important/spam)</div>
+                                                        <div className="custom-text text-sm">✓ Call recording + transcription</div>
+                                                        <div className="custom-text text-sm">✓ Priority support</div>
+                                                    </div>
+                                                    <button 
+                                                        className="custom-btn btn w-full"
+                                                        onClick={() => {
+                                                            setShowUpgrade(false);
+                                                            addMessageWithTyping("Excellent! Pro AI Concierge plan activated for $19.99/month. You now have smart call sorting, recording, and priority support!");
+                                                        }}
+                                                    >
+                                                        Subscribe Pro
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Business Plan */}
+                                            <div className="custom-card border border-gray-600">
+                                                <div className="card-body">
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <div>
+                                                            <h4 className="card-title custom-text">Business</h4>
+                                                            <p className="text-sm custom-text-muted">Multiple numbers + CRM integration</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="text-xl font-bold custom-text">$29.99</div>
+                                                            <div className="text-xs custom-text-muted">/month</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1 mb-3">
+                                                        <div className="custom-text text-sm">✓ Everything in Pro</div>
+                                                        <div className="custom-text text-sm">✓ Multiple virtual numbers</div>
+                                                        <div className="custom-text text-sm">✓ CRM & messenger integration</div>
+                                                        <div className="custom-text text-sm">✓ Advanced AI scenarios</div>
+                                                    </div>
+                                                    <button 
+                                                        className="custom-btn btn btn-sm w-full"
+                                                        onClick={() => {
+                                                            setShowUpgrade(false);
+                                                            addMessageWithTyping("Perfect for business! Business AI Concierge plan activated for $29.99/month. You now have multiple numbers, CRM integration, and advanced AI scenarios!");
+                                                        }}
+                                                    >
+                                                        Subscribe Business
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="modal-action">
+                                    <button 
+                                        className="custom-btn btn"
+                                        onClick={() => setShowUpgrade(false)}
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+
+        // User Data Form Component
+        function UserDataForm({ onSubmit }) {
+            const [formData, setFormData] = useState({
+                name: 'John Smith',
+                email: 'john.smith@email.com',
+                phone: '+1 (555) 123-4567',
+                location: 'New York, NY'
+            });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onSubmit(formData);
+            };
+
+            const handleChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+
+            return (
+                <div className="custom-card shadow border slide-up">
+                    <div className="card-body">
+                        <h3 className="card-title text-sm custom-text">Contact Information</h3>
+                        <div className="mb-4">
+                            <div className="flex justify-between text-xs custom-text-muted mb-1">
+                                <span>Step 1 of 2</span>
+                                <span>50%</span>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-2">
+                                <div className="bg-purple-500 h-2 rounded-full transition-all duration-500" style={{width: '50%'}}></div>
+                            </div>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-3">
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text text-xs custom-text">Name</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    className="custom-input input input-bordered input-sm" 
+                                    value={formData.name}
+                                    onChange={(e) => handleChange('name', e.target.value)}
+                                />
+                            </div>
+                            
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text text-xs custom-text">Email</span>
+                                </label>
+                                <input 
+                                    type="email" 
+                                    className="custom-input input input-bordered input-sm" 
+                                    value={formData.email}
+                                    onChange={(e) => handleChange('email', e.target.value)}
+                                />
+                            </div>
+                            
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text text-xs custom-text">Phone</span>
+                                </label>
+                                <input 
+                                    type="tel" 
+                                    className="custom-input input input-bordered input-sm" 
+                                    value={formData.phone}
+                                    onChange={(e) => handleChange('phone', e.target.value)}
+                                />
+                            </div>
+                            
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text text-xs custom-text">Location</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    className="custom-input input input-bordered input-sm" 
+                                    placeholder="Where do you need the service?"
+                                    value={formData.location}
+                                    onChange={(e) => handleChange('location', e.target.value)}
+                                />
+                            </div>
+                            
+                            
+                            <button type="submit" className="custom-btn btn w-full">
+                                Continue to Payment
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // Payment Form Component
+        function PaymentForm({ onSubmit }) {
+            const [formData, setFormData] = useState({
+                cardNumber: '4532 1234 5678 9012',
+                cardExpiry: '12/25',
+                cardCVV: '123',
+                cardName: 'JOHN SMITH'
+            });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onSubmit(formData);
+            };
+
+            const handleChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+
+            return (
+                <div className="custom-card shadow border slide-up">
+                    <div className="card-body">
+                        <h3 className="card-title text-sm custom-text">Payment Information</h3>
+                        <div className="mb-4">
+                            <div className="flex justify-between text-xs custom-text-muted mb-1">
+                                <span>Step 2 of 2</span>
+                                <span>100%</span>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-2">
+                                <div className="bg-purple-500 h-2 rounded-full transition-all duration-500" style={{width: '100%'}}></div>
+                            </div>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-3">
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text text-xs custom-text">Card Number</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    className="custom-input input input-bordered input-sm" 
+                                    placeholder="1234 5678 9012 3456"
+                                    value={formData.cardNumber}
+                                    onChange={(e) => {
+                                        let value = e.target.value.replace(/\s/g, '').replace(/[^0-9]/gi, '');
+                                        let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+                                        handleChange('cardNumber', formattedValue);
+                                    }}
+                                    maxLength="19"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text text-xs custom-text">Expiry Date</span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        className="custom-input input input-bordered input-sm" 
+                                        placeholder="MM/YY"
+                                        value={formData.cardExpiry}
+                                        onChange={(e) => {
+                                            let value = e.target.value.replace(/\D/g, '');
+                                            if (value.length >= 2) {
+                                                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                                            }
+                                            handleChange('cardExpiry', value);
+                                        }}
+                                        maxLength="5"
+                                    />
+                                </div>
+                                
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text text-xs custom-text">CVV</span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        className="custom-input input input-bordered input-sm" 
+                                        placeholder="123"
+                                        value={formData.cardCVV}
+                                        onChange={(e) => {
+                                            let value = e.target.value.replace(/\D/g, '');
+                                            handleChange('cardCVV', value);
+                                        }}
+                                        maxLength="3"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text text-xs custom-text">Cardholder Name</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    className="custom-input input input-bordered input-sm" 
+                                    placeholder="JOHN SMITH"
+                                    value={formData.cardName}
+                                    onChange={(e) => handleChange('cardName', e.target.value.toUpperCase())}
+                                />
+                            </div>
+                            
+                            <button type="submit" className="custom-btn btn w-full">
+                                Complete Booking
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the app
+        try {
+            ReactDOM.render(<ZaicoChatbot />, document.getElementById('root'));
+        } catch (error) {
+            console.error('React render error:', error);
+            document.getElementById('root').innerHTML = '<div style="color: white; padding: 20px; text-align: center;"><h1>Error loading app</h1><p>Check console for details</p></div>';
+        }
+    </script>
+</body>
+</html>
