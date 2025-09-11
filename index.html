@@ -1701,33 +1701,6 @@ Perfect! I'll process the payment and send confirmation details. The client will
                         </div>
                     </div>
 
-
-                    {/* Temporary Test Button - Remove after testing */}
-                    <div className="fixed bottom-4 right-4 z-50">
-                        <button 
-                            className="btn btn-sm bg-green-600 text-white"
-                            onClick={() => {
-                                showCallRecording({
-                                    clinic: "Test Clinic",
-                                    duration: 3,
-                                    transcription: `[Call started at ${new Date().toLocaleTimeString()}]
-
-Hello, this is Zaico AI calling on behalf of a client. I'm looking to book a doctor appointment for tomorrow afternoon.
-
-[Clinic response]
-
-The client has Blue Cross Blue Shield insurance and a budget of $100-200. They're looking for an annual checkup. Is 2:00 PM tomorrow available?
-
-[Clinic confirms availability and insurance acceptance]
-
-Perfect! I'll process the payment and send confirmation details. The client will receive a reminder 24 hours before the appointment. Thank you for your time!`
-                                });
-                            }}
-                        >
-                            Test Call Recording
-                        </button>
-                    </div>
-
                     {/* Call Transcription Modal */}
                     {showTranscription && transcriptionData && (
                         <div className="modal modal-open" style={{zIndex: 9999}}>
